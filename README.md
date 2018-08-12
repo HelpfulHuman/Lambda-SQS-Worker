@@ -10,9 +10,9 @@ Install with `go get github.com/helpfulhuman/lambda-sqs-worker`
 package main
 
 import (
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws/session"
+  "github.com/aws/aws-lambda-go/events"
+  "github.com/aws/aws-lambda-go/lambda"
+  "github.com/aws/aws-sdk-go/aws/session"
   "github.com/aws/aws-sdk-go/service/sqs"
   sqsworker "github.com/helpfulhuman/lambda-sqs-worker"
 )
