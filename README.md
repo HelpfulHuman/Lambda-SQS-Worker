@@ -25,8 +25,9 @@ func main() {
   sqsClient := sqs.New(aws)
 
   // create your Lambda handler
-  worker := sqsworker.NewHandler(sqsClient, )
+  worker := sqsworker.NewHandler(sqsClient, HandleMessage)
 
+  // start Lambda using your new worker handler
   lambda.Start(worker.Handle)
 }
 
