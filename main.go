@@ -17,7 +17,7 @@ type PartialSQSClient interface {
 }
 
 // MessageProcessor is a function that will handle a single SQS message from a batch.
-type MessageProcessor func(msg events.SQSMessage) error
+type MessageProcessor func(ctx context.Context, msg events.SQSMessage) error
 
 // Handler is used for creating Lambdas that can process batches of SQS events.
 type Handler struct {
@@ -36,9 +36,9 @@ func NewHandler(sqsClient PartialSQSClient, processor MessageProcessor) *Handler
 
 // handleMessage will handle a single SQS message from the batch provided.  If the message
 // is able to be completed, then it will attempt to delete the message from SQS.
-func (s *Handler) handleMessage(ch chan error, msg events.SQSMessage) {
+func (s *Handler) handleMessage(ctx context.Context, ch chan error, msg events.SQSMessage) {
 	// process the message using the provided processor
-	err := s.process(msg)
+	err := s.process(ctx, msg)
 
 	// if we've reached this point with no error, then let's try and remove the message from SQS
 	if err == nil {
@@ -55,7 +55,7 @@ func (s *Handler) handleMessage(ch chan error, msg events.SQSMessage) {
 
 // ProcessMessages handles a batch of SQS messages and returns the total number of
 // successfully processed messages and any error that has occurred.
-func (s *Handler) ProcessMessages(messages []events.SQSMessage) (completed int, err error) {
+func (s *Handler) ProcessMessages(ctx context.Context, messages []events.SQSMessage) (completed int, err error) {
 	count := len(messages)
 
 	// check to see if there are any messages and report if there are none
@@ -68,7 +68,7 @@ func (s *Handler) ProcessMessages(messages []events.SQSMessage) (completed int, 
 
 	// process the messages in parallel
 	for _, message := range messages {
-		go s.handleMessage(results, message)
+		go s.handleMessage(ctx, results, message)
 	}
 
 	// wait on the processed messages and tally the results
@@ -89,7 +89,7 @@ func (s *Handler) ProcessMessages(messages []events.SQSMessage) (completed int, 
 // Handle is the method responsible for processing each batch of messages for
 // an SQS worker Lambda.
 func (s *Handler) Handle(ctx context.Context, ev events.SQSEvent) error {
-	completed, err := s.ProcessMessages(ev.Records)
+	completed, err := s.ProcessMessages(ctx, ev.Records)
 
 	// print a status message to our logs
 	fmt.Printf("%d message(s) received, %d closed\n", len(ev.Records), completed)
@@ -101,4 +101,9 @@ func (s *Handler) Handle(ctx context.Context, ev events.SQSEvent) error {
 func convertARN2URL(arn string) string {
 	parts := strings.Split(arn, ":")
 	return "https://" + parts[2] + "." + parts[3] + ".amazonaws.com/" + parts[4] + "/" + parts[5]
+}
+
+// GetURLFromMessage converts the ARN for an SQS message to the queue URL.
+func GetURLFromMessage(msg events.SQSMessage) string {
+	return convertARN2URL(msg.EventSourceARN)
 }
