@@ -17,20 +17,22 @@ type PartialSQSClient interface {
 }
 
 // MessageProcessor is a function that will handle a single SQS message from a batch.
-type MessageProcessor func(ctx context.Context, msg events.SQSMessage) error
+type MessageProcessor func(ctx context.Context, msg events.SQSMessage, s *Handler) error
 
 // Handler is used for creating Lambdas that can process batches of SQS events.
 type Handler struct {
 	sqsClient PartialSQSClient
 	process   MessageProcessor
+	Services  map[string]interface{}
 }
 
 // NewHandler creates an Handler instance using an SQS client instance and the
 // processing function that handles the each message.
-func NewHandler(sqsClient PartialSQSClient, processor MessageProcessor) *Handler {
+func NewHandler(sqsClient PartialSQSClient, processor MessageProcessor, services map[string]interface{}) *Handler {
 	return &Handler{
 		sqsClient: sqsClient,
 		process:   processor,
+		Services:  services,
 	}
 }
 
@@ -38,7 +40,7 @@ func NewHandler(sqsClient PartialSQSClient, processor MessageProcessor) *Handler
 // is able to be completed, then it will attempt to delete the message from SQS.
 func (s *Handler) handleMessage(ctx context.Context, ch chan error, msg events.SQSMessage) {
 	// process the message using the provided processor
-	err := s.process(ctx, msg)
+	err := s.process(ctx, msg, s)
 
 	// if we've reached this point with no error, then let's try and remove the message from SQS
 	if err == nil {

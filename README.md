@@ -24,15 +24,26 @@ func main() {
   // create an SQS client using our AWS client session
   sqsClient := sqs.New(aws)
 
+  // pass any external services to use in your handler
+  services := make(map[string]interface{})
+
+  // for example, you can set initialize your database session
+  // outside of message processor and pass it to the services map
+  services["dbSess"] = *sess // mongodb session
+
   // create your Lambda handler
-  worker := sqsworker.NewHandler(sqsClient, HandleMessage)
+  worker := sqsworker.NewHandler(sqsClient, HandleMessage, services)
 
   // start Lambda using your new worker handler
   lambda.Start(worker.Handle)
 }
 
-func HandleMessage(msg events.SQSMessage) error {
+func HandleMessage(ctx context.Context, message events.SQSMessage, h *sqsworker.Handler) error {
   // process the SQS message
+
+  if dbSess, ok := h.Services["dbSess"].(mgo.Session); ok {
+    // use your DB session here
+  }
 
   return nil
 }
